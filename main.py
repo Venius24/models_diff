@@ -5,6 +5,7 @@ from lightgbm import LGBMClassifier
 from sklearn.datasets import make_classification
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
 
 # 1. Генерация тестового датасета
 X, y = make_classification(
@@ -40,13 +41,31 @@ cb_infer_time = time.time() - start
 
 cb_auc = roc_auc_score(y_test, cb_preds)
 
-# 4. Вывод результатов
+# 4. XGB оценка
+xgb_model = XGBClassifier(
+    random_state=42,
+    verbosity=0,
+    eval_metric='logloss',
+    n_jobs=-1
+)
+
+start = time.time()
+xgb_model.fit(X_train, y_train)
+xgb_train_time = time.time() - start
+
+start = time.time()
+xgb_preds = xgb_model.predict_proba(X_test)[:, 1]
+xgb_infer_time = time.time() - start
+
+xgb_auc = roc_auc_score(y_test, xgb_preds)
+
+# 5. Вывод результатов
 results = pd.DataFrame(
     {
-        "Model": ["LightGBM", "CatBoost"],
-        "ROC-AUC": [lgb_auc, cb_auc],
-        "Train Time (s)": [lgb_train_time, cb_train_time],
-        "Inference Time (s)": [lgb_infer_time, cb_infer_time],
+        "Model": ["LightGBM", "CatBoost", "XGBoost"],
+        "ROC-AUC": [lgb_auc, cb_auc, xgb_auc],
+        "Train Time (s)": [lgb_train_time, cb_train_time, xgb_train_time],
+        "Inference Time (s)": [lgb_infer_time, cb_infer_time, xgb_infer_time],
     }
 )
 
